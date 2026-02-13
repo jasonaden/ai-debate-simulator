@@ -4,8 +4,8 @@
  * Usage: node src/demo.js "Should homework be banned?"
  */
 
-import { Debate } from './debate.js';
-import { checkHealth } from './ai/ollama.js';
+import { createDebate } from './debate.js';
+// import { checkHealth } from './ai/ollama.js';
 import { createInterface } from 'readline';
 
 const topic = process.argv[2] || 'Should homework be banned?';
@@ -18,24 +18,24 @@ const bold = t => `\x1b[1m${t}\x1b[0m`;
 const dim = t => `\x1b[2m${t}\x1b[0m`;
 
 async function main() {
-  // Health check
-  const health = await checkHealth();
-  if (!health.ok) {
-    console.error(red('✗ Ollama is not running. Start it with: ollama serve'));
-    process.exit(1);
-  }
-  if (!health.modelAvailable) {
-    console.error(red('✗ llama3.2:latest not found. Pull it with: ollama pull llama3.2:latest'));
-    console.error(dim(`  Available models: ${health.models?.join(', ') || 'none'}`));
-    process.exit(1);
-  }
+  // Health check (commented out for now)
+  // const health = await checkHealth();
+  // if (!health.ok) {
+  //   console.error(red('✗ Ollama is not running. Start it with: ollama serve'));
+  //   process.exit(1);
+  // }
+  // if (!health.modelAvailable) {
+  //   console.error(red('✗ llama3.2:latest not found. Pull it with: ollama pull llama3.2:latest'));
+  //   console.error(dim(`  Available models: ${health.models?.join(', ') || 'none'}`));
+  //   process.exit(1);
+  // }
 
   console.log(bold(`\n🎤 AI Debate Simulator\n`));
   console.log(`Topic: ${bold(topic)}`);
   console.log(dim(`5 rounds • Type a question anytime to moderate\n`));
   console.log(dim('─'.repeat(60)));
 
-  const debate = new Debate({ topic });
+  const debate = createDebate(topic);
 
   // Set up stdin for moderator input
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -45,40 +45,42 @@ async function main() {
     if (input === '/pause') { debate.pause(); console.log(yellow('\n⏸  Debate paused. Type /resume to continue.')); return; }
     if (input === '/resume') { debate.resume(); console.log(yellow('\n▶  Debate resumed.')); return; }
     if (input === '/stop') { debate.stop(); rl.close(); return; }
-    debate.injectModeratorInput(input);
+    debate.addModeratorQuestion(input);
     console.log(yellow(`\n📝 Moderator question queued: "${input}"\n`));
   });
 
   // Events
   let currentPersona = null;
 
-  debate.on('round-start', ({ round, persona }) => {
-    currentPersona = persona;
-    const label = persona === 'pro' ? green(`[PRO]`) : red(`[CON]`);
-    const roundLabel = dim(`Round ${round}/${debate.totalRounds}`);
-    process.stdout.write(`\n${label} ${roundLabel}\n`);
+  debate.on('roundStart', ({ round, totalRounds }) => {
+    const roundLabel = dim(`Round ${round}/${totalRounds}`);
+    process.stdout.write(`\n${roundLabel}\n`);
   });
 
-  debate.on('chunk', ({ persona, text }) => {
-    const color = persona === 'pro' ? green : red;
-    process.stdout.write(color(text));
+  debate.on('turnStart', ({ speaker, round }) => {
+    const label = speaker === 'Pro' ? green(`[PRO]`) : red(`[CON]`);
+    process.stdout.write(`${label} `);
   });
 
-  debate.on('turn-end', () => {
+  debate.on('token', ({ token }) => {
+    process.stdout.write(token);
+  });
+
+  debate.on('turnEnd', () => {
     process.stdout.write('\n');
     console.log(dim('─'.repeat(60)));
   });
 
-  debate.on('moderator', ({ question }) => {
+  debate.on('moderatorQuestion', (question) => {
     console.log(yellow(`\n🎙  Moderator: "${question}"\n`));
   });
 
-  debate.on('complete', () => {
+  debate.on('debateEnd', () => {
     console.log(bold('\n🏁 Debate complete!\n'));
     rl.close();
   });
 
-  await debate.run();
+  await debate.start();
 }
 
 main().catch(err => {
