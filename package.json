@@ -1,35 +1,21 @@
 {
   "name": "ai-debate-simulator",
-  "version": "1.0.0",
-  "description": "Watch two AI models debate any topic in your terminal",
-  "main": "src/index.js",
+  "version": "0.1.0",
+  "description": "Two AI models debate any topic, live in terminal",
   "type": "module",
+  "main": "src/index.js",
   "bin": {
     "ai-debate": "./src/index.js"
   },
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "demo": "node src/demo.js"
   },
-  "keywords": [
-    "ai",
-    "debate",
-    "terminal",
-    "cli",
-    "ollama",
-    "education"
-  ],
-  "author": "Nix Tanaka",
-  "license": "MIT",
   "dependencies": {
-    "commander": "^12.0.0",
-    "ink": "^5.0.1",
-    "react": "^18.3.1",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "ink": "^6.7.0",
     "ink-text-input": "^6.0.0",
-    "node-fetch": "^3.3.2",
-    "chalk": "^5.3.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "react": "^19.2.4"
   }
 }
